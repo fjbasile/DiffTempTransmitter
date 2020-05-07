@@ -18,18 +18,21 @@
 
 #include <ArduinoBLE.h>
 
-void setup() {
+void setup() 
+{
   Serial.begin(9600);
-  while (!Serial);
+  
 
   // initialize the BLE hardware
   BLE.begin();
 
-  Serial.println("BLE Central - LED control");
+  Serial.println("BLE Central - Temp Control");
 
   // start scanning for peripherals
   BLE.scanForUuid("19b10000-e8f2-537e-4f6c-d104768a1214");
-}
+  
+  randomSeed(analogRead(0));
+ }
 
 void loop() {
   // check if a peripheral has been discovered
@@ -91,17 +94,18 @@ void controlLed(BLEDevice peripheral)
     return;
   }
 
-  // retrieve the LED characteristic
-  BLECharacteristic tempCharacteristic = peripheral.characteristic("19b10001-e8f2-537e-4f6c-d104768a1214");
+  // retrieve the temp characteristic
+  BLECharacteristic firstTempCharacteristic = peripheral.characteristic("19b10001-e8f2-537e-4f6c-d104768a1214");
+  BLECharacteristic secondTempCharacteristic = peripheral.characteristic("19b10002-e8f2-537e-4f6c-d104768a1214");  
 
-  if (!tempCharacteristic)
+  if (!firstTempCharacteristic || !secondTempCharacteristic)
   {
     Serial.println("Peripheral does not have a temperature characteristic!");
     peripheral.disconnect();
     return;
   } 
   
-  else if (!tempCharacteristic.canWrite()) 
+  else if (!firstTempCharacteristic.canWrite() || !secondTempCharacteristic.canWrite()) 
   {
     Serial.println("Peripheral does not have a writable temp characteristic!");
     peripheral.disconnect();
@@ -112,11 +116,15 @@ void controlLed(BLEDevice peripheral)
   {
     // while the peripheral is connected
 
-      int temp = random(0,300);
+      
+      int temp = random (0, 500);
       Serial.print(temp);
       Serial.println(" sent to receiving device.");
-      tempCharacteristic.writeValue((byte)temp);
+      firstTempCharacteristic.writeValue(highByte(temp));
+      secondTempCharacteristic.writeValue(lowByte(temp));
+      delay(5000);
   }
 
   Serial.println("Peripheral disconnected");
 }
+
